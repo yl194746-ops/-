@@ -1,12 +1,12 @@
-# 🫡 HBTI | 超级地球新兵入伍心理评估系统
+# 🫡 HDTI | 超级地球新兵入伍心理评估系统
 
 > **“管理民主始于自我认知。或者牺牲。大部分情况下是牺牲。” —— 真理部**
 
-![HBTI Logo](https://static.wikia.nocookie.net/helldivers_gamepedia/images/0/07/Helldiver_Art.png)
+![HDTI Logo](https://static.wikia.nocookie.net/helldivers_gamepedia/images/0/07/Helldiver_Art.png)
 
 ## 🎖️ 项目简介
 
-**HBTI (Helldiver Personality Index)** 是一项由超级地球真理部授权开发的心理评估工具。在每一位新兵踏入空降仓、成为伟大的绝地潜兵之前，必须通过此系统来确定其在民主战场上的潜在定位。
+**HDTI (Helldiver Personality Index)** 是一项由超级地球真理部授权开发的心理评估工具。在每一位新兵踏入空降仓、成为伟大的绝地潜兵之前，必须通过此系统来确定其在民主战场上的潜在定位。
 
 通过 20 道严苛的心理测试题目，系统将分析你的忠诚度、决策效率以及对 710 元素的渴望程度，最终将你匹配至 16 种预设人格之一（包括各种敌方单位、昂贵的 500KG 炸弹，以及极少数真正的绝地潜兵）。
 
