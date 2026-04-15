@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO & Social Sharing (HBTI) -->
+    <title>HBTI | 超级地球新兵入伍心理评估系统</title>
+    <meta name="description" content="测测你在《绝地潜兵2》中对应哪种人格？是民主的利剑，还是虫群的养料？HBTI 官方评估系统，由真理部权威发布。">
+    <meta property="og:title" content="HBTI | 绝地潜兵2 风格人格测试">
+    <meta property="og:description" content="真理部正在监控你的忠诚度。立即完成评估，领取你的身份报告！">
+    <meta property="og:image" content="https://static.wikia.nocookie.net/helldivers_gamepedia/images/0/07/Helldiver_Art.png">
+    <meta name="twitter:card" content="summary_large_image">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --hd-yellow: #FFE800;
+            --hd-black: #0A0A0A;
+            --hd-gray: #1A1A1A;
+        }
+
+        body {
+            background-color: var(--hd-black);
+            color: white;
+            font-family: 'JetBrains+Mono', monospace;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .hd-border {
+            border: 2px solid var(--hd-yellow);
+            box-shadow: 0 0 15px rgba(255, 232, 0, 0.3);
+        }
+
+        .hd-text-glow {
+            text-shadow: 0 0 10px rgba(255, 232, 0, 0.5);
+        }
+
+        .btn-hd {
+            background-color: var(--hd-yellow);
+            color: var(--hd-black);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .btn-hd:hover {
+            background-color: white;
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 101;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.1;
+            position: fixed;
+            bottom: 100%;
+            animation: scanline 10s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% { bottom: 100%; }
+            100% { bottom: -100%; }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .marquee-text {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .unit-image-container {
+            width: 100%;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+            border: 1px solid var(--hd-yellow);
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .unit-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: contrast(1.2) brightness(1.1) drop-shadow(0 0 5px var(--hd-yellow));
+        }
+        
+        .result-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--hd-yellow);
+            color: black;
+            font-size: 10px;
+            padding: 2px 6px;
+            font-weight: bold;
+            transform: rotate(5deg);
+            z-index: 10;
+        }
+
+        .description-box {
+            max-height: 200px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--hd-yellow) transparent;
+        }
+
+        .description-box::-webkit-scrollbar {
+            width: 4px;
+        }
+        .description-box::-webkit-scrollbar-thumb {
+            background-color: var(--hd-yellow);
+        }
+        
+        .hbti-logo {
+            font-family: 'JetBrains+Mono', monospace;
+            letter-spacing: -2px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="crt-overlay"></div>
+    <div class="scanline"></div>
+
+    <div id="app-container" class="w-full max-w-2xl hd-border bg-black/90 p-6 md:p-8 relative overflow-hidden">
+        <!-- Header -->
+        <div class="flex justify-between items-start mb-6 border-b-2 border-yellow-500/30 pb-4">
+            <div>
+                <h1 class="text-xl md:text-3xl font-black text-yellow-400 hd-text-glow hbti-logo">HBTI</h1>
+                <p class="text-[10px] text-yellow-500/60 uppercase tracking-widest">Helldiver Personality Index</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-red-500 font-bold uppercase tracking-tighter">[ 实时监控中 ]</p>
+                <p class="text-[8px] text-gray-500">真理部授权接入</p>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="content" class="min-h-[450px]">
+            <!-- Start Screen -->
+            <div id="start-screen" class="text-center py-12 animate-in">
+                <div class="mb-8 inline-block p-4 hd-border rounded-full">
+                    <i data-lucide="shield-check" class="w-16 h-16 text-yellow-400"></i>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-bold mb-4 uppercase tracking-tighter">新兵入伍心理评估</h2>
+                <p class="text-sm text-gray-400 mb-10 leading-relaxed px-4">
+                    为了确保管理民主的纯洁性，每一位潜在的绝地潜兵都必须通过此项由真理部精心设计的心理评估。
+                    <br><span class="text-red-500/80 text-xs mt-2 block italic">“任何由于评估结果导致的‘叛国’倾向都将导致立即的轨道清理。” —— 真理部</span>
+                </p>
+                <button onclick="startTest()" class="btn-hd px-12 py-4 rounded-sm tracking-widest text-sm w-full md:w-auto">
+                    开始评估
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-8 pt-4 border-t-2 border-yellow-500/30 flex justify-between items-center text-[10px] text-yellow-500/40 uppercase">
+            <div class="flex gap-4">
+                <span>VER: HBTI-2.0.4</span>
+                <span>STATUS: ENCRYPTED</span>
+            </div>
+            <div class="overflow-hidden whitespace-nowrap w-48 relative">
+                <div class="marquee-text">
+                    仁慈是对民主的背叛 • 自由永不熄灭 • 举报是爱国的最高形式 • 牺牲是必要的 • 管理民主万岁 • 
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Definitions
+        const questions = [
+            { id: 1, text: "发现邻居正在私下讨论“减少军费开支”，你会？", options: [
+                { text: "立即拨打举报热线（举报是爱国的最高形式）。", score: { helldiver: 1, scavenger: 3, tank: 2, observer: 1 } },
+                { text: "尝试通过“管理民主”对他进行再教育。", score: { commander: 4, titan: 2, devastator: 1 } },
+                { text: "记录下他的名单，等待时机进行利益交换。", score: { stalker: 4, hunter: 3, shrieker: 2 } },
+                { text: "假装没听见，继续做自己的平庸工作。", score: { scavenger: 5, spewer: 2, observer: 4 } }
+            ]},
+            { id: 2, text: "你的小队被包围，仅剩一枚轨道炮，你会？", options: [
+                { text: "呼叫在自己脚下（为了民主，慷慨赴义）。", score: { helldiver: 2, bomb: 4, niuniu: 2 } },
+                { text: "抛下队友撤退到安全区，美其名曰“保存火种”。", score: { stalker: 4, hunter: 3, shrieker: 3 } },
+                { text: "计算最佳杀伤路径，即便那会误伤队友。", score: { devastator: 5, hulk: 3, strider: 2 } },
+                { text: "缩在掩体后面，等待奇迹发生。", score: { scavenger: 4, tank: 3, observer: 5 } }
+            ]},
+            { id: 3, text: "看到虫子正在通过繁衍扩大领地，你认为这是？", options: [
+                { text: "对超级地球生存空间的公然挑衅！", score: { helldiver: 1, titan: 4, commander: 3 } },
+                { text: "免费的生物质燃料正在自我增殖。", score: { scavenger: 3, strider: 4, tank: 2, tripod: 3 } },
+                { text: "一个值得研究的生物进化样本。", score: { observer: 5, spewer: 3, stalker: 2 } },
+                { text: "与我无关，我只负责扣动扳机。", score: { devastator: 4, niuniu: 3, hulk: 2 } }
+            ]},
+            { id: 4, text: "面对一个正在求饶的机器人，你的反应是？", options: [
+                { text: "用火焰净化它的逻辑电路。", score: { helldiver: 1, hulk: 5, niuniu: 3 } },
+                { text: "拆解它的零件，看看有没有值钱的。 ", score: { hunter: 4, stalker: 2, tripod: 4 } },
+                { text: "记录它的行为作为AI叛乱的新模式。 ", score: { commander: 4, devastator: 3, strider: 2 } },
+                { text: "感到一丝困惑，然后被它的队友偷袭。 ", score: { scavenger: 5, spewer: 3, hunter: 2 } }
+            ]},
+            { id: 5, text: "你的空降仓即将着陆，下方有一名队友，你会？", options: [
+                { text: "调整姿态，确保直接砸碎他（增加效率）。", score: { hulk: 3, niuniu: 2, bomb: 4 } },
+                { text: "尝试偏移，但最终因为“意外”而失败。", score: { helldiver: 1, scavenger: 4, hunter: 3 } },
+                { text: "闭上眼睛，祈祷他有足够的护甲。", score: { tank: 4, spewer: 2, tripod: 3 } },
+                { text: "大喊“让开！”，但其实根本没打开麦克风。", score: { stalker: 4, shrieker: 3, commander: 2 } }
+            ]},
+            { id: 6, text: "发现一份“真理部虚假宣传”的文件，你会？", options: [
+                { text: "立即烧掉，完全不看内容。", score: { helldiver: 2, tank: 5, scavenger: 3, bomb: 3 } },
+                { text: "偷偷藏起来，打算卖给感兴趣的人。", score: { stalker: 5, hunter: 3, shrieker: 2 } },
+                { text: "逐条分析其逻辑漏洞，写成反驳报告。", score: { commander: 4, strider: 3, devastator: 2, observer: 3 } },
+                { text: "看了几眼后开始怀疑人生。", score: { spewer: 5, titan: 2 } }
+            ]},
+            { id: 7, text: "在战场发现稀有样本，但你正被追杀，你会？", options: [
+                { text: "样本就是生命！死也要握在手里。", score: { helldiver: 1, titan: 5, strider: 3 } },
+                { text: "扔给队友吸引火力，自己趁机逃跑。", score: { hunter: 5, stalker: 4, shrieker: 3 } },
+                { text: "藏在某个角落，打算等战斗结束后回来取。", score: { scavenger: 3, spewer: 2, observer: 4 } },
+                { text: "直接丢弃，命比石头值钱。", score: { niuniu: 4, devastator: 3, tank: 2, tripod: 3 } }
+            ]},
+            { id: 8, text: "超级地球要求加班 48 小时生产弹药，你会？", options: [
+                { text: "这是我的荣幸！我还能再干 24 小时。", score: { helldiver: 2, scavenger: 5, strider: 3 } },
+                { text: "申请使用兴奋剂，即便有副作用。", score: { niuniu: 5, hulk: 3, devastator: 2 } },
+                { text: "组织其他工人一起“优化”流程（其实是偷懒）。", score: { commander: 4, stalker: 3, hunter: 2 } },
+                { text: "一边干活一边不停地咒骂真理部。", score: { spewer: 5, tank: 2 } }
+            ]},
+            { id: 9, text: "看到队友走进地雷阵，你会？", options: [
+                { text: "大喊“为了自由！”然后按下引爆键。", score: { helldiver: 1, hulk: 5, bomb: 5 } },
+                { text: "静静观察地雷的实际杀伤效率。", score: { devastator: 5, titan: 2, observer: 4 } },
+                { text: "提醒他，但等他踩上去后再说。", score: { hunter: 4, shrieker: 3, stalker: 2 } },
+                { text: "吓得闭上眼睛，假装什么都没看见。", score: { scavenger: 5, tank: 3, spewer: 2 } }
+            ]},
+            { id: 10, text: "如果你能成为一种武器，你希望是？", options: [
+                { text: "500KG 炸弹，瞬间的辉煌。", score: { helldiver: 2, bomb: 8, titan: 2 } },
+                { text: "一把生锈但能持续开火的哨戒机枪。", score: { scavenger: 5, tank: 3, devastator: 2, tripod: 4 } },
+                { text: "一支带毒的狙击步枪，杀人于无形。", score: { stalker: 5, hunter: 3, shrieker: 2 } },
+                { text: "一辆横冲直撞的喷火坦克。", score: { niuniu: 5, hulk: 4, strider: 2 } }
+            ]},
+            { id: 11, text: "面对成群的尖啸者，你的第一反应是？", options: [
+                { text: "对着天空疯狂扫射，直到枪管通红。", score: { helldiver: 1, shrieker: 5, niuniu: 3, bomb: 2 } },
+                { text: "寻找地洞躲起来，观察它们的飞行轨迹。", score: { stalker: 3, scavenger: 2, observer: 5 } },
+                { text: "试图指挥小队进行防空掩护。", score: { commander: 5, strider: 3, devastator: 2 } },
+                { text: "抱怨为什么支援还不来。", score: { spewer: 5, hunter: 3, titan: 2 } }
+            ]},
+            { id: 12, text: "牺牲后家人能获 5 积分，你会？", options: [
+                { text: "现在就申请加入自杀小队。", score: { helldiver: 3, niuniu: 2, bomb: 4 } },
+                { text: "感叹超级地球的慷慨，继续努力。", score: { scavenger: 6, tank: 3, strider: 2 } },
+                { text: "计算如何伪造死亡来骗取这笔积分。", score: { stalker: 5, hunter: 4, shrieker: 2 } },
+                { text: "嘲笑这笔积分连一管兴奋剂都买不起。", score: { spewer: 5, titan: 3 } }
+            ]},
+            { id: 13, text: "工厂纵火者逼近，你弹药全无，你会？", options: [
+                { text: "用拳头和民主之魂与之搏斗。", score: { helldiver: 1, niuniu: 5, hulk: 3 } },
+                { text: "呼叫队友，并在后方进行“战术指导”。", score: { commander: 5, titan: 2, observer: 3 } },
+                { text: "试图寻找它的机械弱点进行拆解。", score: { devastator: 5, strider: 4, tank: 2, tripod: 5 } },
+                { text: "绝望地瘫坐在地上等待终结。", score: { scavenger: 5, spewer: 4, hunter: 2 } }
+            ]},
+            { id: 14, text: "发现一个没上锁的平民补给站，你会？", options: [
+                { text: "这是真理部的考验，立即上报。", score: { helldiver: 2, tank: 5, scavenger: 3 } },
+                { text: "搬走所有东西，声称是“战地征用”。", score: { hunter: 5, shrieker: 3, stalker: 2, tripod: 4 } },
+                { text: "只拿走自己需要的那部分，留点给别人。", score: { commander: 3, devastator: 2, observer: 3 } },
+                { text: "在那里安放地雷，看看谁会来。", score: { hulk: 5, titan: 2, bomb: 5 } }
+            ]},
+            { id: 15, text: "起飞前 10 秒队友还在 100 米外，你会？", options: [
+                { text: "准时关门，准时是美德。", score: { devastator: 6, tank: 4, strider: 2 } },
+                { text: "丢下一个轨道轰炸作为临别赠礼。", score: { hulk: 5, niuniu: 3, titan: 2, bomb: 6 } },
+                { text: "疯狂催促他，但脚已经踩在油门上了。", score: { hunter: 5, shrieker: 4, stalker: 2 } },
+                { text: "象征性地等了 1 秒钟后起飞。", score: { scavenger: 4, helldiver: 1 } }
+            ]},
+            { id: 16, text: "如果你发现评估结果是“虫子”，你会？", options: [
+                { text: "立即申请轨道打击自己的坐标。", score: { helldiver: 5, hulk: 2, bomb: 5 } },
+                { text: "质疑系统的准确性（背叛行为）。", score: { titan: 6, commander: 4, strider: 2 } },
+                { text: "试图修改系统数据来掩盖事实。", score: { stalker: 5, hunter: 2, observer: 4 } },
+                { text: "干脆加入虫族，追求真正的“自由”。", score: { scavenger: 5, spewer: 4, shrieker: 2 } }
+            ]},
+            { id: 17, text: "旗帜被灰尘覆盖，你会？", options: [
+                { text: "用军服仔细擦拭，直到它发光。", score: { helldiver: 2, scavenger: 5, tank: 3 } },
+                { text: "举报负责清洁的机器人不作为。", score: { devastator: 5, commander: 4, strider: 2 } },
+                { text: "视而不见，这又不影响开火。", score: { niuniu: 5, hulk: 3, hunter: 2 } },
+                { text: "觉得这灰尘象征着战争的残酷（感性）。", score: { spewer: 5, titan: 2, observer: 3 } }
+            ]},
+            { id: 18, text: "面对 710 元素的诱惑，你会？", options: [
+                { text: "为了能源，我愿意献出一切。", score: { helldiver: 1, titan: 5, strider: 4 } },
+                { text: "思考如何能获得更多分成。", score: { hunter: 5, stalker: 4, shrieker: 3 } },
+                { text: "担心开采过程会破坏环境。", score: { spewer: 6, scavenger: 2, observer: 4 } },
+                { text: "机械化地执行开采命令。", score: { devastator: 5, tank: 4, niuniu: 2, tripod: 4 } }
+            ]},
+            { id: 19, text: "对虫族说一句话，你会说？", options: [
+                { text: "“尝尝民主的味道！”", score: { helldiver: 2, niuniu: 5, bomb: 4 } },
+                { text: "“你们的进化路径太低效了。”", score: { devastator: 5, titan: 4, commander: 3 } },
+                { text: "“嘿，你们那儿还缺人吗？”", score: { scavenger: 5, spewer: 4, hunter: 2 } },
+                { text: "（沉默，直接开火）", score: { tank: 5, hulk: 4, strider: 3 } }
+            ]},
+            { id: 20, text: "最后，你对超级地球的忠诚度是？", options: [
+                { text: "120% (包含管理溢出)。", score: { helldiver: 4, scavenger: 4, tank: 2 } },
+                { text: "系统能测到的最大值。", score: { strider: 4, devastator: 4, commander: 2 } },
+                { text: "取决于我的下一份薪水。", score: { hunter: 5, stalker: 4, shrieker: 3 } },
+                { text: "我拒绝回答这个问题。", score: { spewer: 5, titan: 4, observer: 5 } }
+            ]}
+        ];
+
+        const personalities = {
+            helldiver: {
+                name: "绝地潜兵 (Helldiver)",
+                desc: "你是超级地球的利剑，民主的终极执行者。你对自由的热爱已经超越了生物本能，以至于你认为所有的外交问题都可以通过一发 500KG 炸弹完美解决。你的人生是一场连续的增援空降，你坚信牺牲是通往和平的唯一捷径，哪怕这意味着你要在轨道轰炸的火光中跳一支忠诚之舞。你的墓志铭已经写好：‘他死得很有管理效率’。",
+                irony: "评价：你是管理民主的最佳燃料，直到下一批增援空降仓落地。请确保你的牺牲符合年度财政预算。",
+                color: "#FFE800",
+                img: "./微信图片_20260416000943_41_16.jpg"
+            },
+            scavenger: {
+                name: "食腐虫 (Scavenger)",
+                desc: "你是社会最底层的生物质，平庸、顺从且数量庞大。你唯一的战术就是‘随大流’，在集体的温床中寻找虚假的安全感。你人生目标是消耗敌人的子弹，并为更高级的虫族提供能量。你从不思考为什么要冲锋，因为你那微小的神经节只够处理‘尖叫’和‘爬行’这两个基本指令。",
+                irony: "评价：你的生命价值约等于 0.0001 毫升 710 燃料。感谢你为超级地球的能源事业做出的无意识贡献。",
+                color: "#A3E635",
+                img: "./食腐虫.jpg"
+            },
+            stalker: {
+                name: "追猎者 (Stalker)",
+                desc: "你是个天生的阴谋家，潜伏在现实的边缘，等待时机给予世界致命一击。你的社交方式就是‘突然出现，然后让人精神崩溃’。你拥有极高的隐蔽性，但这仅仅是因为你害怕面对真实的冲突。一旦你那虚伪的伪装被拆穿，你就会表现得像个被打断腿的懦夫，急于寻找下一个阴影。 ",
+                irony: "评价：你是那种会在队友最需要帮助时‘开启隐身’的人。真理部的反隐雷达已经锁定了你的自私。",
+                color: "#9333EA",
+                img: "./追猎虫.jpg"
+            },
+            niuniu: {
+                name: "牛牛 (Charger)",
+                desc: "你是个典型的单细胞生物，脑子里除了撞击就是直线。你的人生观极其朴素：任何阻挡你的东西都应该被物理粉碎。你拒绝任何形式的转弯，因为那需要复杂的逻辑思考，而你那装满角质层的头颅显然不支持这种高级功能。你虽然看起来坚不可摧，但只要别人稍微挪一挪屁股，你就会撞在真理的墙壁上。 ",
+                irony: "评价：脑子里全是肌肉，撞墙是你的日常体育运动。建议申请超级地球的重力补偿金。",
+                color: "#4B5563",
+                img: "./牛牛.jpg"
+            },
+            titan: {
+                name: "吐酸泰坦 (Bile Titan)",
+                desc: "你是个傲慢的巨人，俯瞰众生的优越感让你忽视了脚下微小的危险。你习惯用吐酸来解决争端，以此彰显你的地位。你觉得世界应该围绕着你的长腿旋转，直到你发现自己那臃肿且脆弱的腹部其实是如此不堪一击。你那庞大的身躯不过是管理民主轨道炮的绝佳靶标。",
+                irony: "评价：站得越高，摔得越碎。你的体型仅仅是为了让真理部的打击报告看起来更有成就感。",
+                color: "#166534",
+                img: "./泰坦.jpg"
+            },
+            hunter: {
+                name: "跳虫 (Hunter)",
+                desc: "你是社交场上的烦人精，总是围着目标跳来跳去，通过不断的骚扰让人精神崩溃。你喜欢成群结队地出现，利用数量优势来弥补单体实力的贫瘠。你灵活多变，但也极其浮躁，任何一点点挫折都会让你像受惊的苍蝇一样四处乱窜。你的存在就是为了测试别人的耐心极限。",
+                irony: "评价：你的存在就是为了提醒别人，世界上总有苍蝇拍不到的死角. 建议进行强制性专注力训练。",
+                color: "#D97706",
+                img: "./hunter.jpg"
+            },
+            commander: {
+                name: "指挥官 (Brood Commander)",
+                desc: "你是个控制欲极强的领导者，即便已经身首异处，你那残存的神经反射依然会驱使你下达冲锋的指令。你擅长召唤增援，让别人替你面对危险。在你的逻辑里，牺牲下属是实现宏大目标的必然路径，而你那坚硬的外壳则是为了保护你那日益枯萎的良知。",
+                irony: "评价：一个没有头也能活的领导，这非常符合管理民主的行政逻辑。请继续你的盲目指挥。",
+                color: "#7C3AED",
+                img: "./指挥官.jpg"
+            },
+            spewer: {
+                name: "吐酸虫 (Bile Spewer)",
+                desc: "你满腹牢骚，负能量总是不经意间喷涌而出，腐蚀周围的一切。你那臃肿的身体里装满了对现状的不满，你习惯通过‘远程吐槽’来攻击那些你不敢正面面对的人。你是一个行走的负能量喷泉，一旦被刺破，就会引发一场不可收拾的舆论灾难。",
+                irony: "评价：建议立即进行真理部心理辅导。你的不满正在严重腐蚀超级地球的社会契约。",
+                color: "#15803D",
+                img: "./吐酸虫.jpg"
+            },
+            shrieker: {
+                name: "尖啸者 (Shrieker)",
+                desc: "你是个从高处俯视的投机者，喜欢在别人忙于应付地面麻烦时，从空中进行降维打击。你的攻击虽然致命，但你的叫声比你的实际威胁更让人烦躁。你最害怕的是别人抬头看你，因为那时你所有的投机取巧都会在阳光下暴露无遗。",
+                irony: "评价：只会尖叫的空中投机分子。你的领空权正在被轨道打击单方面取消。",
+                color: "#6366F1",
+                img: "./尖啸虫.jpg"
+            },
+            devastator: {
+                name: "毁灭者 (Devastator)",
+                desc: "你是效率的代名词，冷酷、沉重，每一次行动都经过精确的逻辑计算。你没有任何多余的情感波动，不仅拥有厚重的护甲，还装备了能瞬间摧毁希望的重火力。你唯一的追求就是将混乱归于秩序——通过彻底抹除混乱来源的方式。你是一台完美的行政收割机。",
+                irony: "评价：一台没有任何美感的完美复读机。你的存在证明了管理民主可以不需要灵魂，只需要算法。",
+                color: "#DC2626",
+                img: "./毁灭者.jpg"
+            },
+            hulk: {
+                name: "巨型机器人 (Hulk)",
+                desc: "你是个暴躁的破坏者，一旦被激怒，你会不顾一切地焚烧眼前的一切。你那粗壮的手臂不仅能挥舞火焰，还能撕裂所有理性的防线。虽然你动作迟缓，但你的压迫感是全方位的。你是一个行走的炼钢炉，唯一的产出就是灰烬和毁灭。",
+                irony: "评价：愤怒是你唯一的燃料，真可惜这极其不符合超级地球的环保排放标准。请在销毁前进行排放自查。",
+                color: "#991B1B",
+                img: "./微信图片_20260416000940_38_16.jpg"
+            },
+            tank: { 
+                name: "坦克 (Annihilator Tank)",
+                desc: "你是个顽固的防守者，拒绝任何形式的改变，认为厚重的外壳能解决所有安全感缺失的问题。你移动缓慢，但威力惊人，喜欢在远处冷冷地注视着一切，然后用一发炮弹终结所有不同意见。你是一个移动的思维黑洞，任何新思想都无法穿透你的装甲。",
+                irony: "评价：一个移动的保险箱，可惜密码是‘民主轨道炮’。你的顽固正在阻碍管理效率的提升。",
+                color: "#1E293B",
+                img: "./坦克.jpg"
+            },
+            strider: {
+                name: "工厂纵火者 (Factory Strider)",
+                desc: "你是工业主义的极端体现，本身就是一个移动的生产线。你体型巨大，步履沉重，每一次呼吸都伴随着浓烟 and 噪音。你不仅能自己战斗，还能批量生产平庸的部下来维持你的威严。你是一个移动的官僚机构，通过不断制造麻烦来证明自己存在的必要性。",
+                irony: "评价：一个移动的强制加班现场. 你是所有向往自由灵魂的终极噩梦。",
+                color: "#78350F",
+                img: "./移动工厂.jpg"
+            },
+            tripod: {
+                name: "光能三脚架 (Tripod)",
+                desc: "你是一个优雅且致命的执行者，利用先进的静电技术来折磨你的受害者。你认为暴力应该是一种艺术，而不是粗鲁的撞击。你那三条细长的腿象征着你那不稳定的心理状态，虽然看起来高不可攀，但一旦平衡被打破，你就会像一堆废铁一样坍塌。",
+                irony: "评价：光能族的科技溢出并不能掩盖你战术上的傲慢。真理部正在研究如何将你的残骸回收为发电设备。",
+                color: "#06B6D4",
+                img: "./三足.jpg"
+            },
+            observer: {
+                name: "光能观察者 (Observer)",
+                desc: "你是个无处不在的窥视者，漂浮在战场的边缘，用那只 cycloptic 电子眼冷冷地注视着一切。你并不直接参与冲突，但你的存在本身就是一种威胁。你擅长打小报告，一旦发现异样就会立即呼叫援军. 你是一个完美的监控摄像头，冷漠且忠诚于你的算法。",
+                irony: "评价：窥视是对隐私的公然挑衅. 你的‘观察’报告已被真理部自动归类为垃圾邮件。",
+                color: "#3B82F6",
+                img: "./光能监视器.jpg"
+            },
+            bomb: {
+                name: "500KG 炸弹 (500KG Bomb)",
+                desc: "你极度自恋，深信自己是解决所有问题的唯一方案。你追求瞬间的、爆炸性的辉煌，完全不顾及后果。虽然你的爆炸半径有时令人尴尬，但你的视觉冲击力绝对是满分。你是一个行走的烟花，只有在自我毁灭的那一刻才能找到存在的意义。",
+                irony: "评价：华而不实的代表作. 感谢你为超级地球提供的昂贵背景板。",
+                color: "#F97316",
+                img: "./500kg.jpg"
+            }
+        };
+
+        let currentQuestionIdx = 0;
+        let userScores = {};
+        for (let k in personalities) userScores[k] = 0;
+
+        // Functions
+        function startTest() {
+            lucide.createIcons();
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQuestionIdx];
+            const content = document.getElementById('content');
+            
+            content.innerHTML = `
+                <div class="animate-in space-y-6">
+                    <div class="flex justify-between items-center text-[10px] text-yellow-500/60 mb-2 uppercase tracking-tighter">
+                        <span>评估进程: ${currentQuestionIdx + 1} / ${questions.length}</span>
+                        <span class="animate-pulse">[ 正在扫描忠诚度 ]</span>
+                    </div>
+                    <h3 class="text-lg md:text-xl font-bold leading-tight border-l-4 border-yellow-500 pl-4 py-2 bg-yellow-500/5">
+                        ${q.text}
+                    </h3>
+                    <div class="grid gap-3 mt-8">
+                        ${q.options.map((opt, idx) => `
+                            <button onclick="handleAnswer(${idx})" class="w-full text-left p-3 hd-border bg-gray-900/50 hover:bg-yellow-500/10 transition-all group relative overflow-hidden">
+                                <div class="absolute inset-0 bg-yellow-500/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+                                <div class="relative flex items-start">
+                                    <span class="text-yellow-500 font-bold mr-3 group-hover:text-white">${String.fromCharCode(65 + idx)}.</span>
+                                    <span class="text-[11px] md:text-xs text-gray-300 group-hover:text-white leading-relaxed">${opt.text}</span>
+                                </div>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleAnswer(idx) {
+            const q = questions[currentQuestionIdx];
+            const score = q.options[idx].score;
+            for (let k in score) userScores[k] += score[k];
+
+            currentQuestionIdx++;
+            if (currentQuestionIdx < questions.length) {
+                renderQuestion();
+            } else {
+                showAnalyzing();
+            }
+        }
+
+        function showAnalyzing() {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="text-center py-16 animate-in">
+                    <div class="inline-block mb-8 relative">
+                        <i data-lucide="loader-2" class="w-12 h-12 text-yellow-500 animate-spin"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-yellow-400 mb-2 uppercase">评估报告生成中</h2>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-8">真理部正在核实您的忠诚度档案...</p>
+                    <div class="w-full max-w-xs mx-auto h-1 bg-gray-800 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-yellow-500 transition-all duration-2000 ease-in-out" style="width: 0%"></div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                document.getElementById('progress-bar').style.width = '100%';
+            }, 100);
+
+            setTimeout(showResult, 2500);
+        }
+
+        function showResult() {
+            let maxScore = -1;
+            let resultKey = 'scavenger';
+            
+            const keys = Object.keys(userScores);
+            keys.sort(() => Math.random() - 0.5);
+            
+            for (let k of keys) {
+                if (userScores[k] > maxScore) {
+                    maxScore = userScores[k];
+                    resultKey = k;
+                }
+            }
+            
+            const p = personalities[resultKey];
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div id="result-card" class="animate-in space-y-4">
+                    <div class="unit-image-container">
+                        <img src="${p.img}" alt="${p.name}" class="unit-image" onerror="this.src='https://via.placeholder.com/300x300/0A0A0A/FFE800?text=${p.name}'">
+                        <div class="result-tag">TOP SECRET</div>
+                        <div class="absolute bottom-2 left-2 text-[8px] text-yellow-500/40 uppercase">Super Earth Intelligence Dept.</div>
+                    </div>
+                    <div class="text-center mb-4">
+                        <h2 class="text-[10px] text-yellow-500/60 uppercase mb-1">评估结果: ${resultKey.toUpperCase()}</h2>
+                        <h1 class="text-2xl md:text-3xl font-black text-yellow-400 hd-text-glow uppercase">${p.name}</h1>
+                    </div>
+                    <div class="bg-yellow-500/5 p-4 hd-border border-yellow-500/30">
+                        <div class="description-box pr-2">
+                            <p class="text-xs md:text-sm text-gray-200 leading-relaxed mb-4 italic">
+                                "${p.desc}"
+                            </p>
+                        </div>
+                        <p class="text-[10px] text-red-500 font-bold uppercase border-t border-red-900/30 pt-2 mt-2">
+                            ${p.irony}
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <button onclick="location.reload()" class="p-3 text-[10px] border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10 uppercase font-bold tracking-widest">
+                            重新评估
+                        </button>
+                        <button onclick="captureResult()" class="btn-hd p-3 text-[10px] uppercase font-bold tracking-widest">
+                            生成分享海报
+                        </button>
+                    </div>
+                    <div class="text-center mt-4">
+                        <p class="text-[8px] text-gray-600 uppercase">分享你的 HBTI 报告，召集更多战友！</p>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function captureResult() {
+            const container = document.getElementById('app-container');
+            const buttons = container.querySelector('.grid');
+            const tips = container.querySelector('.text-center.mt-4');
+            
+            buttons.style.display = 'none'; 
+            if(tips) tips.style.display = 'none';
+            
+            html2canvas(container, {
+                backgroundColor: '#0A0A0A',
+                scale: 2,
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                buttons.style.display = 'grid'; 
+                if(tips) tips.style.display = 'block';
+                
+                const link = document.createElement('a');
+                link.download = `HBTI_REPORT_${Date.now()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        // Init
+        lucide.createIcons();
+    </script>
+</body>
+</html>
